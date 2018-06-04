@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 
 from domeneshop.domeneshop import Domeneshop
 
@@ -13,9 +14,23 @@ def main():
     args = parser.parse_args()
     config = args.config
 
-    object = Domeneshop(verbose=args.verbose, config=config)
-    object.update_records()
+    if os.environ.get('CERTBOT_DOMAIN'):
+        domain = str(os.environ.get('CERTBOT_DOMAIN'))
+    else:   
+        print ('No domain specified')
+        return False
 
+    if os.environ.get('CERTBOT_VALIDATION'):
+        txt_record = str(os.environ.get('CERTBOT_VALIDATION'))
+    else:
+        print ('No validation string')
+        return False
+
+    object = Domeneshop(verbose=args.verbose, config=config)
+
+    for record in object.config['record']:
+        if domain == record['domain']:
+          object.update_record(record['id'], domain, txt_record)
 
 if __name__ == "__main__":
     main()

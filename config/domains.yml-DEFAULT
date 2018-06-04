@@ -5,9 +5,8 @@ domeneshop:
 login: your@email.com
 password: password
 
-# list here the records you want to add/update
+# list here the domaines you want to be able to add/update
 record:
   - name: Test domain
     id: id_for_domain_7_digits
-    # example.com is not yet supported, only test.example.com
-    domain: test.example.com
+    domain: example.com

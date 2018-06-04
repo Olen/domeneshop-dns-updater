@@ -5,10 +5,7 @@ from bs4 import BeautifulSoup
 import re
 import dns.resolver
 
-__author__ = 'runelangseid'
-
-# @todo Add support for advanced options, like ttl & type
-# @todo Add support for Docker, Docker-compose
+__author__ = 'Olen'
 
 class Domeneshop(object):
     verbose = False
@@ -36,11 +33,10 @@ class Domeneshop(object):
         Instance Domeneshop object
         """
 
-        self.ip = self.get_ip()
         self.verbose = verbose
 
         if config == None:
-            config = './config/domains.yml'
+            config = 'domeneshop-dns-updater/config/domains.yml'
 
         with open(config) as f:
             self.config = yaml.load(f)
@@ -80,37 +76,23 @@ class Domeneshop(object):
 
         return True
 
-    def update_records(self):
-        """
-        Update dns records from config
-        """
-        for record in self.config['record']:
-            self.update_record(record)
+    def update_record(self, id, domain, txt_record):
 
-    # @todo Add support for top domains - eg example.com. Only www.example.com is supported
-    # @todo Add support for setting ttl
-    def update_record(self, record):
         """
         Update single dns record from config
         """
+
+        host = "_acme-challenge" 
         if self.verbose:
-            print('record', record)
+            print('UPDATE', host + "." + domain, "IN TXT", txt_record)
 
-        # check ip
-        changed = self.changed_ip(record['domain'])
-        if changed:
-            print('Detected changed ip for %s' % record['domain'])
+        # @todo Throw exception
+        if not self.cookies:
+            login = self.login()
+            if not login:
+                return False
 
-            # @todo Throw exception
-            if not self.cookies:
-                login = self.login()
-                if not login:
-                    return False
-        else:
-            print('No IP change detected for %s' % record['domain'])
-            return
-
-        url = '%s?edit=dns&id=%s' % (self.config['domeneshop']['admin'], record['id'])
+        url = '%s?edit=dns&advanced=1&id=%s' % (self.config['domeneshop']['admin'], id)
 
         response = requests.get(
             url,
@@ -118,8 +100,7 @@ class Domeneshop(object):
             cookies=self.cookies,
         );
 
-        form = self._get_form(response, record)
-        host = self._get_host(record)
+        form = self._get_form(response, host  + "." + domain)
 
         if not form:
             print('Problem accessing domain page.')
@@ -130,20 +111,22 @@ class Domeneshop(object):
         oldtype = form.find('input', {'name': 'oldtype'})['value']
 
         params = (
-            ('id', record['id']),
+            ('id', id),
             ('edit', 'dns'),
-            ('advanced', '0'),
+            ('advanced', '1'),
         )
 
         payload = [
             ('auth', auth),
-            ('advanced', '0'),
-            ('id', record['id']),
+            ('advanced', '1'),
+            ('id', id),
             ('edit', 'dns'),
             ('host', host),
             ('oldtype', oldtype),
             ('olddata', olddata),
-            ('data', self.ip),
+            ('rrtype', 'TXT'),
+            ('ttl', 300),
+            ('data', '"' + txt_record + '"'),
             ('modify.x', '7'),
             ('modify.y', '6'),
         ]
@@ -151,13 +134,15 @@ class Domeneshop(object):
         if self.verbose:
             print('Payload for update', payload)
 
-        requests.post(
+        response = requests.post(
             url,
             params=params,
             data=payload,
             headers=self.headers,
             cookies=self.cookies,
         );
+        # print(response.headers)
+        # print(response.content)
 
         # Add check if update was successful with issuing a new request
         response = requests.get(
@@ -166,37 +151,20 @@ class Domeneshop(object):
             cookies=self.cookies,
         );
 
-        form = self._get_form(response, record)
+        form = self._get_form(response, host  + "." + domain)
 
         if form:
-            host_updated = form.find('input', {'name': 'host'})['value']
-            if host == host_updated:
+            txt_updated = form.find('input', {'name': 'olddata'})['value']
+            if txt_updated == '"' + txt_record + '"':
                 print('- Updated successfully')
                 return True
 
         print('- Whoops! Updated was not successful!')
         return False
 
-    def changed_ip(self, domain):
-        """
-        Checks if DNS record refers to current IP address
-        """
-        ip = self.get_ip()
-
-        # Basic A query the host's DNS
-        for rdata in dns.resolver.query(domain, 'A'):
-            if ip == rdata.address:
-                return False
-
-        return True
 
     @staticmethod
-    def _get_host(record):
-        host = record['domain'].split('.')[0]
-        return host
-
-    @staticmethod
-    def _get_form(response, record):
+    def _get_form(response, host):
         # Fix errors in html
         html = response.text.replace('</td>\n</td>', '</td>')
 
@@ -204,14 +172,11 @@ class Domeneshop(object):
         forms = soup.findAll('form')
 
         for form in forms:
-            search = '^%s.*' % (record['domain'])
+            rrtype = form.find('input', {'name': 'rrtype'})['value']
+            search = '^%s.*' % (host)
             tds = form.findAll('td', text=re.compile(search))
-            if tds:
+            if tds and rrtype == 'TXT':
                 return form
 
         return False
 
-    @staticmethod
-    def get_ip():
-        ip = requests.get('https://api.ipify.org').text
-        return ip

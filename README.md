@@ -1,7 +1,7 @@
 # domeneshop-dns-updater
 
-As domeneshop is missing an dyndns API, this small util provides an automated way to
-update subdomains.
+As domeneshop is missing an API, this small util provides an automated way to update the _acme-challenge TXT record needed for certbot automatic renewals
+
 
 # 1. Run from host
 
@@ -19,26 +19,11 @@ Add username and password, id for domain (7 digits) and the domains to update.
 
 ## Run
 
-For help
 ```sh
-./domeneshop.py -h
-```
-
-Run this to update DNS
-```sh
-./domeneshop.py [config]
-```
-# 2. Run from docker
-
-Check domains every 10 minutes
-
-```sh
-cp config/domains.yml-DEFAULT config/domains.yml
-vi config/domains.yml
-docker run -it --name python -v path/to/your/config:/src/config runelangseid/domeneshop-dns-updater
+certbot certonly --manual --manual-auth-hook domeneshop.py --agree-tos --manual-public-ip-logging-ok -d <domain.name>
 
 ```
 
 # Credit
 
-A similar implementation in NodeJS https://github.com/maccyber/auto-add-dns-domeneshop
+Forked from https://github.com/runelangseid/domeneshop-dns-updater
