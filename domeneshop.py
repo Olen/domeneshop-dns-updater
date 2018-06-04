@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+import time
 import argparse
 import os
+import dns.resolver
+
 
 from domeneshop.domeneshop import Domeneshop
 
@@ -15,7 +17,7 @@ def main():
     config = args.config
 
     if config == None:
-        config = os.path.realpath(__file__) + "/config/domains.yml"
+        config = os.path.dirname(os.path.realpath(__file__)) + "/config/domains.yml"
 
     if os.environ.get('CERTBOT_DOMAIN'):
         domain = str(os.environ.get('CERTBOT_DOMAIN'))
@@ -34,6 +36,9 @@ def main():
     for record in object.config['record']:
         if domain == record['domain']:
           object.update_record(record['id'], domain, txt_record)
+
+    print("Waiting for DNS-modification to propagate")
+    time.sleep(30)   # delays for 30 seconds to wait for DNS-modification to propagate
 
 if __name__ == "__main__":
     main()

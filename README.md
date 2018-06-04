@@ -24,6 +24,19 @@ certbot certonly --manual --manual-auth-hook domeneshop.py --agree-tos --manual-
 
 ```
 
+## Certbot-config
+Make sure your renewal-config contains the following:
+### /etc/letsencrypt/renewal/domain.name.conf
+```
+pref_challs = dns-01,
+server = https://acme-v02.api.letsencrypt.org/directory
+authenticator = manual
+installer = None
+manual_public_ip_logging_ok = True
+manual_auth_hook = /path/to/domeneshop-dns-updater/domeneshop.py
+
+
+
 # Credit
 
 Forked from https://github.com/runelangseid/domeneshop-dns-updater
