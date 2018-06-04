@@ -36,7 +36,7 @@ class Domeneshop(object):
         self.verbose = verbose
 
         if config == None:
-            config = 'domeneshop-dns-updater/config/domains.yml'
+            config = './config/domains.yml'
 
         with open(config) as f:
             self.config = yaml.load(f)

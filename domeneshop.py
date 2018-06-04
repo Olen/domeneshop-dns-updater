@@ -14,6 +14,9 @@ def main():
     args = parser.parse_args()
     config = args.config
 
+    if config == None:
+        config = os.path.realpath(__file__) + "/config/domains.yml"
+
     if os.environ.get('CERTBOT_DOMAIN'):
         domain = str(os.environ.get('CERTBOT_DOMAIN'))
     else:   
