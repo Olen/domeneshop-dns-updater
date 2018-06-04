@@ -35,6 +35,7 @@ installer = None
 manual_public_ip_logging_ok = True
 manual_auth_hook = /path/to/domeneshop-dns-updater/domeneshop.py
 
+```
 
 
 # Credit
